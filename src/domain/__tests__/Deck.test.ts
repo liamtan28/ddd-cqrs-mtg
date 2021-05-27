@@ -11,18 +11,23 @@ import { AddToDeckCommand } from "../commands/AddToDeckCommand.ts";
 import { RenameDeckCommand } from "../commands/RenameDeckCommand.ts";
 import { ChangeDeckFormatCommand } from "../commands/ChangeDeckFormatCommand.ts";
 import { RemoveFromDeckCommand } from "../commands/RemoveFromDeckCommand.ts";
+import { DeckProjection } from "../projections/DeckProjection.ts";
 
 console.log("\n========= BEGIN TEST =========\n");
 
-// EventStore
-const eventStore = new InMemoryEventStore();
-
-// Repos
-const deckRepo: DeckRepository = new DeckRepository(eventStore);
 
 // MessageBus
 
 const messageBus = new MessageBus();
+
+// EventStore
+const eventStore = new InMemoryEventStore(messageBus);
+
+// Repos
+const deckRepo: DeckRepository = new DeckRepository(eventStore);
+
+// Projections
+const deckProjection = new DeckProjection(messageBus);
 
 // TODO this sucks. 
 // I dont like using strings here
@@ -169,11 +174,4 @@ messageBus.sendCommand(renameDeckCommand);
 messageBus.sendCommand(changeDeckFormatCommand);
 messageBus.sendCommand(removeFromDeckCommand);
 
-const deck = deckRepo.getById(DECK_ID);
-
-console.log({
-    id: deck.id,
-    name: deck.getName(),
-    format: deck.getFormat(),
-    numCards: deck.getSize(),
-});
+console.log(deckProjection.getDeckView(DECK_ID));
