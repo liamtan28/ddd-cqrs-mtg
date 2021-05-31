@@ -1,4 +1,4 @@
-import { ICommand } from "../../framework/ICommand.ts";
+import { ICommand } from "../../framework/ICommand";
 
 export class RenameDeckCommand implements ICommand {
 

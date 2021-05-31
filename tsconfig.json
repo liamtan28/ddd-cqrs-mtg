@@ -4,12 +4,14 @@
       "esModuleInterop": true,
       "lib": ["esnext"],
       "module": "esnext",
+      "sourceMap": true,
       "moduleResolution": "node",
-      "noEmit": true,
-      "plugins": [ { "name": "deno_ls_plugin" } ],
+      "noEmit": false,
       "pretty": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
       "resolveJsonModule": true,
-      "target": "esnext"
+      "target": "esnext",
     },
     "include": [
       "./**/*.ts"

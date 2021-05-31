@@ -1,4 +1,4 @@
-import { Event } from "../../framework/Event.ts";
+import { Event } from "../../framework/Event";
 
 export class RemovedFromDeck extends Event {
     constructor(

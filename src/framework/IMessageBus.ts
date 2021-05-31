@@ -1,5 +1,5 @@
-import { ICommand } from "./ICommand.ts";
-import { Event } from "./Event.ts";
+import { ICommand } from "./ICommand";
+import { Event } from "./Event";
 export interface IMessageBus {
 
     registerCommandHandlers(commands: Array<ICommand>, handlers: any): void;

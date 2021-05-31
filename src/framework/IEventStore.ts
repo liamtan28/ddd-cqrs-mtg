@@ -1,4 +1,4 @@
-import { Event } from "./Event.ts";
+import { Event } from "./Event";
 
 export interface IEventStore {
     saveEvents(

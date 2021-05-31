@@ -1,8 +1,8 @@
-import { ICommand } from "./ICommand.ts";
-import { IMessageBus } from "./IMessageBus.ts";
-import { Event } from "./Event.ts";
+import { ICommand } from "./ICommand";
+import { IMessageBus } from "./IMessageBus";
+import { Event } from "./Event";
 
-export class MessageBus implements IMessageBus {
+class MessageBus implements IMessageBus {
 
     #eventHandlers = new Map<string, (event: any) => void>();
     #commandHandlers = new Map<string, any>();
@@ -12,6 +12,7 @@ export class MessageBus implements IMessageBus {
         // Check that command handler class has a method called handle(CommandName) for 
         // each command
         commandNames.forEach((commandName: string): void => {
+
             const methodName = `handle${commandName}`;
             if (!handlerClass.constructor.prototype.hasOwnProperty(methodName)) {
                 throw new Error(
@@ -53,3 +54,11 @@ export class MessageBus implements IMessageBus {
     }
 
 }
+
+const messageBus = new MessageBus();
+Object.freeze(messageBus);
+
+export { 
+    messageBus,
+    MessageBus
+};

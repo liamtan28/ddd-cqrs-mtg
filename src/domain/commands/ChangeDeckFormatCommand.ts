@@ -1,5 +1,5 @@
-import { Format } from "../types.ts";
-import { ICommand } from "../../framework/ICommand.ts";
+import { Format } from "../types";
+import { ICommand } from "../../framework/ICommand";
 
 export class ChangeDeckFormatCommand implements ICommand {
 

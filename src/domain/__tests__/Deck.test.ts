@@ -1,17 +1,18 @@
-import { v4 } from "../../../deps.ts";
-import { DeckRepository } from "../DeckRepository.ts";
-import { InMemoryEventStore } from "../../framework/InMemoryEventStore.ts";
-import { MessageBus } from "../../framework/MessageBus.ts";
+import { v4 } from "uuid";
+import { Repository } from "../../framework/Repository";
+import { InMemoryEventStore } from "../../framework/InMemoryEventStore";
+import { MessageBus } from "../../framework/MessageBus";
 
-import { Format } from "../types.ts";
+import { Format } from "../types";
 
-import { DeckCommandHandlers } from "../handlers/DeckCommandHandlers.ts";
-import { NewDeckCommand } from "../commands/NewDeckCommand.ts";
-import { AddToDeckCommand } from "../commands/AddToDeckCommand.ts";
-import { RenameDeckCommand } from "../commands/RenameDeckCommand.ts";
-import { ChangeDeckFormatCommand } from "../commands/ChangeDeckFormatCommand.ts";
-import { RemoveFromDeckCommand } from "../commands/RemoveFromDeckCommand.ts";
-import { DeckProjection } from "../projections/DeckProjection.ts";
+import { DeckCommandHandlers } from "../handlers/DeckCommandHandlers";
+import { NewDeckCommand } from "../commands/NewDeckCommand";
+import { AddToDeckCommand } from "../commands/AddToDeckCommand";
+import { RenameDeckCommand } from "../commands/RenameDeckCommand";
+import { ChangeDeckFormatCommand } from "../commands/ChangeDeckFormatCommand";
+import { RemoveFromDeckCommand } from "../commands/RemoveFromDeckCommand";
+import { DeckProjection } from "../projections/DeckProjection";
+import { Deck } from "../Deck";
 
 console.log("\n========= BEGIN TEST =========\n");
 
@@ -19,13 +20,10 @@ console.log("\n========= BEGIN TEST =========\n");
 // MessageBus
 
 const messageBus = new MessageBus();
-
 // EventStore
 const eventStore = new InMemoryEventStore(messageBus);
-
 // Repos
-const deckRepo: DeckRepository = new DeckRepository(eventStore);
-
+const deckRepo: Repository<Deck> = new Repository<Deck>(eventStore, Deck);
 // Projections
 const deckProjection = new DeckProjection(messageBus);
 
@@ -45,133 +43,24 @@ messageBus.registerCommandHandlers([
 
 // Test Data
 
-const DECK_ID = v4.generate();
+const DECK_ID = v4();
 const DECK_NAME = "Jund Death's Shadow";
 const DECK_FORMAT = Format.MODERN;
 
-const CARDS = ["Abrupt Decay",
-"Ancient Tomb",
-"Anguished Unmaking",
-"Arid Mesa",
-"Armageddon",
-"Avacyn, Angel of Hope",
-"Bayou",
-"Birds of Paradise",
-"Blood Crypt",
-"Bloodstained Mire",
-"Bloom Tender",
-"Brainstorm",
-"Breeding Pool",
-"Chrome Mox",
-"City of Brass",
-"Command Tower",
-"Conflux",
-"Counterspell",
-"Cyclonic Rift",
-"Demonic Tutor",
-"Dockside Extortionist",
-"Elesh Norn, Grand Cenobite",
-"Elvish Mystic",
-"Emrakul, the Promised End",
-"Enlightened Tutor",
-"Enter the Infinite",
-"Exotic Orchard",
-"Exploration",
-"Farseek",
-"Fellwar Stone",
-"Fist of Suns",
-"Flooded Strand",
-"Force of Negation",
-"Force of Will",
-"Gilded Drake",
-"Godless Shrine",
-"Grim Monolith",
-"Hallowed Fountain",
-"In Garruk's Wake",
-"Insurrection",
-"Island",
-"Jin-Gitaxias, Core Augur",
-"Jodah, Archmage Eternal",
-"Kozilek, Butcher of Truth",
-"Kozilek, the Great Distortion",
-"Llanowar Elves",
-"Lotus Petal",
-"Mana Confluence",
-"Mana Vault",
-"Marsh Flats",
-"Mirari's Wake",
-"Misty Rainforest",
-"Mountain",
-"Myojin of Night's Reach",
-"Myojin of Seeing Winds",
-"Mystic Remora",
-"Mystical Tutor",
-"Nature's Lore",
-"Nexus of Fate",
-"Omniscience",
-"Overgrown Tomb",
-"Pact of Negation",
-"Plateau",
-"Polluted Delta",
-"Ponder",
-"Preordain",
-"Prismatic Vista",
-"Reflecting Pool",
-"Rhystic Study",
-"Sacred Foundry",
-"Sakura-Tribe Elder",
-"Scalding Tarn",
-"Scrubland",
-"Selvala, Heart of the Wilds",
-"Sensei's Divining Top",
-"Sol Ring",
-"Steam Vents",
-"Stomping Ground",
-"Swan Song",
-"Swords to Plowshares",
-"Sylvan Caryatid",
-"Sylvan Library",
-"Taiga",
-"Talisman of Conviction",
-"Talisman of Progress",
-"Temple Garden",
-"Temporal Mastery",
-"Time Stretch",
-"Tooth and Nail",
-"Toxic Deluge",
-"Tropical Island",
-"Ulamog, the Ceaseless Hunger",
-"Vampiric Tutor",
-"Verdant Catacombs",
-"Vorinclex, Voice of Hunger",
-"Watery Grave",
-"Wheel of Fortune",
-"Windswept Heath",
-"Wooded Foothills",
-"Worldly Tutor",
-"Zacama, Primal Calamity",
-];
+const CARDS = ["1ee86efa-248e-4251-b734-f8ad3e8a0344", "a8e328c6-3a84-49cf-a1a3-1d1e5373d274"]
 
-const CARDS_FOR_REMOVAL = [
-    "Abrupt Decay",
-    "Ancient Tomb",
-    "Anguished Unmaking",
-    "Arid Mesa",
-    "Armageddon",
-];
+const CARDS_FOR_REMOVAL = ["a8e328c6-3a84-49cf-a1a3-1d1e5373d274"];
 
 
 // Commands
-const newDeckCommand = new NewDeckCommand(DECK_ID, DECK_NAME, DECK_FORMAT);
-const addToDeckCommand = new AddToDeckCommand(DECK_ID, CARDS);
-const renameDeckCommand = new RenameDeckCommand(DECK_ID, "Jodah CEDH Deck");
-const changeDeckFormatCommand = new ChangeDeckFormatCommand(DECK_ID, Format.EDH);
-const removeFromDeckCommand = new RemoveFromDeckCommand(DECK_ID, CARDS_FOR_REMOVAL);
+messageBus.sendCommand(new NewDeckCommand(DECK_ID, DECK_NAME, DECK_FORMAT));
+messageBus.sendCommand(new AddToDeckCommand(DECK_ID, CARDS));
+messageBus.sendCommand(new RenameDeckCommand(DECK_ID, "Jodah CEDH Deck"));
+messageBus.sendCommand(new ChangeDeckFormatCommand(DECK_ID, Format.EDH));
+messageBus.sendCommand(new RemoveFromDeckCommand(DECK_ID, CARDS_FOR_REMOVAL));
 
-messageBus.sendCommand(newDeckCommand);
-messageBus.sendCommand(addToDeckCommand);
-messageBus.sendCommand(renameDeckCommand);
-messageBus.sendCommand(changeDeckFormatCommand);
-messageBus.sendCommand(removeFromDeckCommand);
 
-console.log(deckProjection.getDeckView(DECK_ID));
+await new Promise((resolve) => setTimeout(() => {
+    console.log(deckProjection.getDeckView(DECK_ID));
+    resolve(deckProjection.getDeckView(DECK_ID));
+}, 5000));

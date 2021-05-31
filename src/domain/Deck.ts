@@ -1,12 +1,12 @@
-import { AggregateRoot } from "../framework/AggregateRoot.ts";
-import { Card } from "./Card.ts";
-import { Format } from "./types.ts";
+import { AggregateRoot } from "../framework/AggregateRoot";
+import { Card } from "./Card";
+import { Format } from "./types";
 
-import { AddedToDeck } from "./events/AddedToDeck.ts";
-import { DeckCreated } from "./events/DeckCreated.ts";
-import { DeckRenamed } from "./events/DeckRenamed.ts";
-import { DeckFormatChanged } from "./events/DeckFormatChanged.ts";
-import { RemovedFromDeck } from "./events/RemovedFromDeck.ts";
+import { AddedToDeck } from "./events/AddedToDeck";
+import { DeckCreated } from "./events/DeckCreated";
+import { DeckRenamed } from "./events/DeckRenamed";
+import { DeckFormatChanged } from "./events/DeckFormatChanged";
+import { RemovedFromDeck } from "./events/RemovedFromDeck";
 
 export class Deck extends AggregateRoot {
 

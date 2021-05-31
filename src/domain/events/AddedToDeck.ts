@@ -1,5 +1,5 @@
-import { Event } from "../../framework/Event.ts";
-import { Card } from "../Card.ts";
+import { Event } from "../../framework/Event";
+import { Card } from "../Card";
 
 export class AddedToDeck extends Event {
     constructor(

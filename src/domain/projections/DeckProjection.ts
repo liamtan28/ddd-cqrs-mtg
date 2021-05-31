@@ -1,10 +1,23 @@
-import { IMessageBus } from "../../framework/IMessageBus.ts";
+import { IMessageBus } from "../../framework/IMessageBus";
 
-import { AddedToDeck } from "../events/AddedToDeck.ts";
-import { DeckCreated } from "../events/DeckCreated.ts";
-import { DeckFormatChanged } from "../events/DeckFormatChanged.ts";
-import { DeckRenamed } from "../events/DeckRenamed.ts";
-import { RemovedFromDeck } from "../events/RemovedFromDeck.ts";
+import { AddedToDeck } from "../events/AddedToDeck";
+import { DeckCreated } from "../events/DeckCreated";
+import { DeckFormatChanged } from "../events/DeckFormatChanged";
+import { DeckRenamed } from "../events/DeckRenamed";
+import { RemovedFromDeck } from "../events/RemovedFromDeck";
+import { Format } from "../types";
+
+/*
+
+interface DeckProjectionView {
+    deckID: string;
+    deckName: string;
+    deckFormat: Format;
+    numberOfCards: number;
+    cards: Array<CardProjectionView>;
+}
+
+*/
 
 interface DeckView {
     id: string;
@@ -13,7 +26,6 @@ interface DeckView {
     numCards: number;
     cards: Array<string>;
 }
-
 
 // TODO really not sure about this.
 // Unanswered questions:
@@ -48,11 +60,10 @@ export class DeckProjection {
 
         messageBus.registerEventHandler<AddedToDeck>('AddedToDeck', (e) => {
             const view = this.#deckViews.get(e.id) as DeckView;
-            const newCards = [ ...view.cards, ...e.cards]
             this.#deckViews.set(e.id, {
                 ...view,
                 numCards: view.numCards + e.cards.length,
-                cards: newCards,
+                cards: [...view.cards, ...e.cards],
             });
         });
 
@@ -61,7 +72,7 @@ export class DeckProjection {
             this.#deckViews.set(e.id, {
                 ...view,
                 numCards: view.numCards - e.cards.length,
-                cards: view.cards.filter((card => !e.cards.includes(card))),
+                cards: view.cards.filter(((cardId: string) => !e.cards.includes(cardId))),
             });
         });
 

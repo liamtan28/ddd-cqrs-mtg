@@ -1,4 +1,4 @@
-import { AggregateRoot } from "../framework/AggregateRoot.ts";
+import { AggregateRoot } from "../framework/AggregateRoot";
 import { Card } from "./Card";
 
 export class Collection extends AggregateRoot {

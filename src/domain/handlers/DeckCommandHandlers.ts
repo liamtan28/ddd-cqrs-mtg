@@ -1,14 +1,14 @@
-import { Deck } from "../Deck.ts";
-import { DeckRepository } from "../DeckRepository.ts";
+import { Deck } from "../Deck";
+import { Repository } from "../../framework/Repository";
 
-import { NewDeckCommand } from "../commands/NewDeckCommand.ts";
-import { AddToDeckCommand } from "../commands/AddToDeckCommand.ts";
-import { RenameDeckCommand } from "../commands/RenameDeckCommand.ts";
-import { ChangeDeckFormatCommand } from "../commands/ChangeDeckFormatCommand.ts";
-import { RemoveFromDeckCommand } from "../commands/RemoveFromDeckCommand.ts";
+import { NewDeckCommand } from "../commands/NewDeckCommand";
+import { AddToDeckCommand } from "../commands/AddToDeckCommand";
+import { RenameDeckCommand } from "../commands/RenameDeckCommand";
+import { ChangeDeckFormatCommand } from "../commands/ChangeDeckFormatCommand";
+import { RemoveFromDeckCommand } from "../commands/RemoveFromDeckCommand";
 
 export class DeckCommandHandlers {
-    constructor(private readonly repository: DeckRepository) {}
+    constructor(private readonly repository: Repository<Deck>) {}
 
     handleNewDeckCommand(command: NewDeckCommand) {
         const deck: Deck = new Deck(command.id, command.name, command.format);

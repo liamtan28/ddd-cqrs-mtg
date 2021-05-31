@@ -1,12 +1,33 @@
-export class Card {
+import { AggregateRoot } from "../framework/AggregateRoot";
+import { CardCreated } from "./events/CardCreated";
+import { Format } from "./types";
 
-    #id: string;
-    #name: string;
-    #legalFormats: Array<string>;
-    #image?: URL;
+export class Card extends AggregateRoot {
 
-    constructor(id: string, name: string, legalFormats: Array<string>, image?: URL) {
-        this.#id = id;
+    #name: string = '';
+    #legalFormats: Array<Format> = [];
+    #image: string = '';
+
+    getName(): string {
+        return this.#name;
+    }
+    getLegalFormats(): Array<Format> {
+        return this.#legalFormats;
+    }
+    getImageURI(): string {
+        return this.#image;
+    }
+
+    constructor(id?: string, name?: string, legalFormats?: Array<Format>, image?: string) {
+        super();
+        if (id && name && legalFormats && image) {
+            this.addEvent(new CardCreated(id, name, legalFormats, image));
+        }
+    }
+
+    applyCardCreated(event: CardCreated): void {
+        const { id, name, legalFormats, image } = event;
+        this._id = id;
         this.#name = name;
         this.#legalFormats = legalFormats;
         this.#image = image;

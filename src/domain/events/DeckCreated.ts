@@ -1,5 +1,5 @@
-import { Event } from "../../framework/Event.ts";
-import { Format } from "../types.ts";
+import { Event } from "../../framework/Event";
+import { Format } from "../types";
 
 export class DeckCreated extends Event {
     constructor(

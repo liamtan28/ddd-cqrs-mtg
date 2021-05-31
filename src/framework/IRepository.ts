@@ -1,4 +1,4 @@
-import { AggregateRoot } from "./AggregateRoot.ts";
+import { AggregateRoot } from "./AggregateRoot";
 
 export interface IRepository<T extends AggregateRoot> {
 

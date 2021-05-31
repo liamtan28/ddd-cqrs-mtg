@@ -1,6 +1,8 @@
-import { IEventStore } from "./IEventStore.ts";
-import { Event } from "./Event.ts";
-import { IMessageBus } from "./IMessageBus.ts";
+import { IEventStore } from "./IEventStore";
+import { Event } from "./Event";
+import { IMessageBus } from "./IMessageBus";
+
+import { messageBus } from "./MessageBus";
 
 class EventDescriptor {
     constructor(
@@ -10,7 +12,7 @@ class EventDescriptor {
     ) {}
   }
 
-export class InMemoryEventStore implements IEventStore {
+class InMemoryEventStore implements IEventStore {
 
     constructor(private readonly messageBus: IMessageBus) {}
 
@@ -32,7 +34,6 @@ export class InMemoryEventStore implements IEventStore {
         ));
         this.#events.set(aggregateId, [...this.#events.get(aggregateId) || [], ...newEvents]);
 
-        console.log(`[EVENT STORE] ${events.length} events saved to Event Store for aggregate id: ${aggregateId}`);
         // TODO this will be by configuring whatever I use for a real event stores
         // responsibility to talk to the MessageBus
         this.messageBus.publishEvents(events);
@@ -45,6 +46,11 @@ export class InMemoryEventStore implements IEventStore {
         return eventDescriptors
             .map((desc: EventDescriptor): Event => desc.event);
     }
+}
 
-
+const eventStore = new InMemoryEventStore(messageBus);
+Object.freeze(eventStore);
+export {
+    eventStore,
+    InMemoryEventStore,
 }
