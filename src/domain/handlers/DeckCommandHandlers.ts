@@ -7,9 +7,14 @@ import { RenameDeckCommand } from "../commands/RenameDeckCommand";
 import { ChangeDeckFormatCommand } from "../commands/ChangeDeckFormatCommand";
 import { RemoveFromDeckCommand } from "../commands/RemoveFromDeckCommand";
 import { Card } from "../Card";
+import { Collection } from "../Collection";
 
 export class DeckCommandHandlers {
-    constructor(private readonly deckRepo: Repository<Deck>, private readonly cardRepo: Repository<Card>) {}
+    constructor(
+        private readonly deckRepo: Repository<Deck>,
+        private readonly cardRepo: Repository<Card>,
+        private readonly collectionRepo: Repository<Collection>
+    ) {}
 
     handleNewDeckCommand(command: NewDeckCommand) {
         const deck: Deck = new Deck(command.id, command.name, command.format);

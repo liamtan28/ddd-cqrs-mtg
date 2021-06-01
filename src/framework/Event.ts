@@ -13,4 +13,5 @@ export abstract class Event {
         this.#id = v4();
         this.#timestamp = Date.now();
     }
+
 }

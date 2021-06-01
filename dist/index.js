@@ -381,9 +381,11 @@ class Deck extends AggregateRoot {
 class DeckCommandHandlers {
     deckRepo;
     cardRepo;
-    constructor(deckRepo, cardRepo) {
+    collectionRepo;
+    constructor(deckRepo, cardRepo, collectionRepo) {
         this.deckRepo = deckRepo;
         this.cardRepo = cardRepo;
+        this.collectionRepo = collectionRepo;
     }
     handleNewDeckCommand(command) {
         const deck = new Deck(command.id, command.name, command.format);
@@ -760,6 +762,74 @@ class AddToCollectionCommand {
     }
 }
 
+;// CONCATENATED MODULE: external "mongoose"
+const external_mongoose_namespaceObject = require("mongoose");;
+var external_mongoose_default = /*#__PURE__*/__webpack_require__.n(external_mongoose_namespaceObject);
+;// CONCATENATED MODULE: ./env.ts
+const MONGO_DB_NAME = "ddd-cqrs-mtg";
+const MONGO_DB_USER = "app";
+const MONGO_DB_PASS = "jMQH0JvtZ1ewCIdz";
+const MONGO_DB_HOST = "cluster0.frczd.mongodb.net";
+
+;// CONCATENATED MODULE: ./src/infrastructure/mongo-client.ts
+
+
+function mongoTest() {
+    external_mongoose_default().connect(`mongodb+srv://${MONGO_DB_USER}:${MONGO_DB_PASS}@${MONGO_DB_HOST}/${MONGO_DB_NAME}?retryWrites=true&w=majority`, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+    const deckProjectionSchema = new (external_mongoose_default()).Schema({
+        deckID: String,
+        name: String,
+        format: String,
+        numCards: Number,
+        isLegal: Boolean,
+        cards: [{
+                name: String,
+                legalFormats: [String],
+                image: String,
+            }]
+    });
+    const DeckProjection = external_mongoose_default().model('DeckProjection', deckProjectionSchema);
+    /*
+     "cards": [
+            {
+                "id": "0000579f-7b35-4ed3-b44c-db2a538066fe",
+                "name": "Fury Sliver",
+                "legalFormats": [
+                    "Modern",
+                    "Legacy",
+                    "Vintage",
+                    "Penny",
+                    "Commander",
+                    "Duel"
+                ],
+                "image": "https://c1.scryfall.com/file/scryfall-cards/normal/front/0/0/0000579f-7b35-4ed3-b44c-db2a538066fe.jpg?1562894979"
+    
+    */
+    const deckProjection = new DeckProjection({
+        deckID: "bf874a46-4c88-4492-a003-8ce6a33bac08",
+        name: "TestDeck",
+        format: "Modern",
+        numCards: 1,
+        isLegal: false,
+        cards: [{
+                name: "Fury Sliver",
+                legalFormats: [
+                    "Modern",
+                    "Legacy",
+                    "Vintage",
+                    "Penny",
+                    "Commander",
+                    "Duel"
+                ],
+                image: "https://c1.scryfall.com/file/scryfall-cards/normal/front/0/0/0000579f-7b35-4ed3-b44c-db2a538066fe.jpg?1562894979"
+            }]
+    });
+    deckProjection.save().then(() => DeckProjection.find({ deckID: "bf874a46-4c88-4492-a003-8ce6a33bac08" }, (err, docs) => console.log(docs)));
+}
+
 ;// CONCATENATED MODULE: ./src/index.ts
 
 
@@ -782,6 +852,8 @@ class AddToCollectionCommand {
 
 
 
+
+mongoTest();
 // Repos
 const deckRepo = new Repository(eventStore, Deck);
 const cardRepo = new Repository(eventStore, Card);
@@ -796,7 +868,7 @@ messageBus.registerCommandHandlers([
     'RenameDeckCommand',
     'ChangeDeckFormatCommand',
     'RemoveFromDeckCommand',
-], new DeckCommandHandlers(deckRepo, cardRepo));
+], new DeckCommandHandlers(deckRepo, cardRepo, collectionRepo));
 messageBus.registerCommandHandlers([
     'NewCardCommand'
 ], new CardCommandHandlers(cardRepo));

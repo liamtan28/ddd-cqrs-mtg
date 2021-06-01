@@ -27,6 +27,10 @@ import { CollectionCommandHandlers } from './domain/handlers/CollectionCommandHa
 import { NewCollectionCommand } from './domain/commands/NewCollectionCommand';
 import { AddToCollectionCommand } from './domain/commands/AddToCollectionCommand';
 
+import { mongoTest } from './infrastructure/mongo-client';
+
+mongoTest();
+
 // Repos
 const deckRepo: Repository<Deck> = new Repository<Deck>(eventStore, Deck);
 const cardRepo: Repository<Card> = new Repository<Card>(eventStore, Card);
@@ -42,7 +46,11 @@ messageBus.registerCommandHandlers([
     'RenameDeckCommand',
     'ChangeDeckFormatCommand',
     'RemoveFromDeckCommand',
-], new DeckCommandHandlers(deckRepo, cardRepo));
+], new DeckCommandHandlers(
+  deckRepo,
+  cardRepo,
+  collectionRepo,
+));
 
 messageBus.registerCommandHandlers([
   'NewCardCommand'

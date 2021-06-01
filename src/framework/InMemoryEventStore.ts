@@ -11,8 +11,7 @@ class EventDescriptor {
       public readonly event: Event,
       public readonly version: number
     ) {}
-  }
-
+}
 class InMemoryEventStore implements IEventStore {
 
     #numEvents = 0;
