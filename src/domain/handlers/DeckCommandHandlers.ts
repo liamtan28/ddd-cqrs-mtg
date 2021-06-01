@@ -6,36 +6,38 @@ import { AddToDeckCommand } from "../commands/AddToDeckCommand";
 import { RenameDeckCommand } from "../commands/RenameDeckCommand";
 import { ChangeDeckFormatCommand } from "../commands/ChangeDeckFormatCommand";
 import { RemoveFromDeckCommand } from "../commands/RemoveFromDeckCommand";
+import { Card } from "../Card";
 
 export class DeckCommandHandlers {
-    constructor(private readonly repository: Repository<Deck>) {}
+    constructor(private readonly deckRepo: Repository<Deck>, private readonly cardRepo: Repository<Card>) {}
 
     handleNewDeckCommand(command: NewDeckCommand) {
         const deck: Deck = new Deck(command.id, command.name, command.format);
-        this.repository.save(deck, 0);
+        this.deckRepo.save(deck, 0);
     }
 
     handleAddToDeckCommand(command: AddToDeckCommand) {
-        const deck = this.repository.getById(command.id);
-        deck.addCards(command.cards);
-        this.repository.save(deck, 0);
+        const deck = this.deckRepo.getById(command.id);
+        const cards: Array<Card> = this.cardRepo.getByIds(command.cards);
+        deck.addCards(cards);
+        this.deckRepo.save(deck, 0);
     }
 
     handleRemoveFromDeckCommand(command: RemoveFromDeckCommand) {
-        const deck = this.repository.getById(command.id);
+        const deck = this.deckRepo.getById(command.id);
         deck.removeCards(command.cards);
-        this.repository.save(deck, 0);
+        this.deckRepo.save(deck, 0);
     }
 
     handleRenameDeckCommand(command: RenameDeckCommand) {
-        const deck = this.repository.getById(command.id);
+        const deck = this.deckRepo.getById(command.id);
         deck.rename(command.name);
-        this.repository.save(deck, 0);
+        this.deckRepo.save(deck, 0);
     }
 
     handleChangeDeckFormatCommand(command: ChangeDeckFormatCommand) {
-        const deck = this.repository.getById(command.id);
+        const deck = this.deckRepo.getById(command.id);
         deck.changeFormat(command.newFormat);
-        this.repository.save(deck, 0);
+        this.deckRepo.save(deck, 0);
     }
 }

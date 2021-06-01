@@ -12,7 +12,7 @@ export class Deck extends AggregateRoot {
 
     #name: string = '';
     #format: Format = Format.UNKNOWN;
-    #cards: /*Array<Card>*/ Array<string> = [];
+    #cards: Array<Card> = [];
 
     constructor(id?: string, name?: string, format?: Format) {
         super();
@@ -41,7 +41,7 @@ export class Deck extends AggregateRoot {
         this.#cards = [];
     }
 
-    addCards(ids: Array<string>): void {
+    addCards(ids: Array<Card>): void {
         this.addEvent(new AddedToDeck(this.id, ids));
     }
 
@@ -54,7 +54,7 @@ export class Deck extends AggregateRoot {
     }
 
     applyRemovedFromDeck(event: RemovedFromDeck): void {
-        this.#cards = this.#cards.filter((card: string) => !event.cards.includes(card));
+        this.#cards = this.#cards.filter((card: Card) => !event.cards.includes(card.getID()));
     }
 
     rename(name: string): void {

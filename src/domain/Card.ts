@@ -8,6 +8,10 @@ export class Card extends AggregateRoot {
     #legalFormats: Array<Format> = [];
     #image: string = '';
 
+    getID() {
+        return this._id;
+    }
+
     getName(): string {
         return this.#name;
     }

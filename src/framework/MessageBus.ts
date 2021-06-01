@@ -1,3 +1,5 @@
+import colors from "colors";
+
 import { ICommand } from "./ICommand";
 import { IMessageBus } from "./IMessageBus";
 import { Event } from "./Event";
@@ -21,12 +23,12 @@ class MessageBus implements IMessageBus {
             }
             this.#commandHandlers.set(commandName, handlerClass);
         });
-        console.log(`[MESSAGE BUS] Registered ${commandNames.length} commands to handler (${handlerClassName})`);
     }
     sendCommand(command: ICommand): void {
         const commandName = command.constructor.name;
         const methodName = `handle${commandName}`;
-        console.log(`[MESSAGE BUS] received new command (${commandName})`);
+
+        console.log(colors.underline.green(`[NEW COMMAND] ${commandName}\n`));
 
         if (!this.#commandHandlers.has(commandName)) {
             throw new Error(`[MESSAGE BUS] Attempted to issue command ${commandName} with no registered handlers.`);
@@ -37,7 +39,6 @@ class MessageBus implements IMessageBus {
     }
     registerEventHandler<T extends Event>(event: /*Event*/ string, handler: (event: T) => void) {
         this.#eventHandlers.set(event, handler);
-        console.log(`[MESSAGE BUS] Registered new event handler for event ${event}`);
     }
 
     publishEvents(events: Event[]): void {
@@ -49,7 +50,6 @@ class MessageBus implements IMessageBus {
             }
 
             handler(event);
-            console.log(`[MESSAGE BUS] Published event (${eventName}) to event handlers`);
         });
     }
 

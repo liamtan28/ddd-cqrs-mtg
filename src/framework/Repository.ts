@@ -9,6 +9,15 @@ export class Repository<T extends AggregateRoot> implements IRepository<T> {
         )
     {}
 
+    getByIds(ids: Array<string> = []): Array<T> {
+        return ids.map(id => {
+            const entity: T = new this.Type();
+            const events = this.storage.getEventsForAggregate(id);
+            entity.reconstruct(events);
+            return entity;
+        });
+    }
+
     // 1. Create empty domain object (TODO how do we do this without creating 
     // constructor as it adds another creation event at start)
     // 2. get all events from eventStore

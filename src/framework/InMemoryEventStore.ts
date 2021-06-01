@@ -1,7 +1,8 @@
+import colors from "colors";
+
 import { IEventStore } from "./IEventStore";
 import { Event } from "./Event";
 import { IMessageBus } from "./IMessageBus";
-
 import { messageBus } from "./MessageBus";
 
 class EventDescriptor {
@@ -13,6 +14,8 @@ class EventDescriptor {
   }
 
 class InMemoryEventStore implements IEventStore {
+
+    #numEvents = 0;
 
     constructor(private readonly messageBus: IMessageBus) {}
 
@@ -33,6 +36,9 @@ class InMemoryEventStore implements IEventStore {
             0, // placeholder TODO fix
         ));
         this.#events.set(aggregateId, [...this.#events.get(aggregateId) || [], ...newEvents]);
+        this.#numEvents += events.length;
+
+        events.forEach(event => console.log(colors.blue(`[EVENT ${event.constructor.name} SAVED] [${event.getTimestamp()}] [${event.getID()}]\n`)));
 
         // TODO this will be by configuring whatever I use for a real event stores
         // responsibility to talk to the MessageBus

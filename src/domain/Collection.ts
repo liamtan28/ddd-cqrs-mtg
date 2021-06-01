@@ -1,17 +1,34 @@
 import { AggregateRoot } from "../framework/AggregateRoot";
 import { Card } from "./Card";
+import { AddedToCollection } from "./events/AddedToCollection";
+import { CollectionCreated } from "./events/CollectionCreated";
 
 export class Collection extends AggregateRoot {
+    #ownerID: string = '';
+    #cards: Array<Card> = [];
 
-    #id: string;
-    #cards: Array<Card>;
-
-    constructor(id: string) {
-        super();
+    getCards() {
+        return this.#cards;
     }
 
-    addCards(ids: Array<string>): void {
+    constructor(id?: string, ownerID?: string) {
+        super();
+        if (id && ownerID) {
+            this.addEvent(new CollectionCreated(id, ownerID));
+        }
+    }
 
+    applyCollectionCreated(event: CollectionCreated) {
+        this._id = event.id;
+        this.#ownerID = event.ownerID;
+    }
+
+    addCards(ids: Array<Card>): void {
+        this.addEvent(new AddedToCollection(this.id, ids));
+    }
+
+    applyAddedToCollection(event: AddedToCollection): void {
+        this.#cards = [...this.#cards, ...event.cards];
     }
     removeCards(ids: Array<string>): void {
 

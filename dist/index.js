@@ -39,6 +39,12 @@ var __webpack_exports__ = {};
 ;// CONCATENATED MODULE: external "express"
 const external_express_namespaceObject = require("express");;
 var external_express_default = /*#__PURE__*/__webpack_require__.n(external_express_namespaceObject);
+;// CONCATENATED MODULE: external "body-parser"
+const external_body_parser_namespaceObject = require("body-parser");;
+var external_body_parser_default = /*#__PURE__*/__webpack_require__.n(external_body_parser_namespaceObject);
+;// CONCATENATED MODULE: external "colors"
+const external_colors_namespaceObject = require("colors");;
+var external_colors_default = /*#__PURE__*/__webpack_require__.n(external_colors_namespaceObject);
 ;// CONCATENATED MODULE: ./src/framework/Repository.ts
 class Repository {
     storage;
@@ -46,6 +52,14 @@ class Repository {
     constructor(storage, Type) {
         this.storage = storage;
         this.Type = Type;
+    }
+    getByIds(ids = []) {
+        return ids.map(id => {
+            const entity = new this.Type();
+            const events = this.storage.getEventsForAggregate(id);
+            entity.reconstruct(events);
+            return entity;
+        });
     }
     // 1. Create empty domain object (TODO how do we do this without creating 
     // constructor as it adds another creation event at start)
@@ -64,6 +78,7 @@ class Repository {
 }
 
 ;// CONCATENATED MODULE: ./src/framework/MessageBus.ts
+
 class MessageBus {
     #eventHandlers = new Map();
     #commandHandlers = new Map();
@@ -78,12 +93,11 @@ class MessageBus {
             }
             this.#commandHandlers.set(commandName, handlerClass);
         });
-        console.log(`[MESSAGE BUS] Registered ${commandNames.length} commands to handler (${handlerClassName})`);
     }
     sendCommand(command) {
         const commandName = command.constructor.name;
         const methodName = `handle${commandName}`;
-        console.log(`[MESSAGE BUS] received new command (${commandName})`);
+        console.log(external_colors_default().underline.green(`[NEW COMMAND] ${commandName}\n`));
         if (!this.#commandHandlers.has(commandName)) {
             throw new Error(`[MESSAGE BUS] Attempted to issue command ${commandName} with no registered handlers.`);
         }
@@ -93,7 +107,6 @@ class MessageBus {
     }
     registerEventHandler(event, handler) {
         this.#eventHandlers.set(event, handler);
-        console.log(`[MESSAGE BUS] Registered new event handler for event ${event}`);
     }
     publishEvents(events) {
         events.forEach((event) => {
@@ -103,7 +116,6 @@ class MessageBus {
                 throw new Error(`[MESSAGE BUS] Attempted to publish event (${eventName}) with no bound handler.`);
             }
             handler(event);
-            console.log(`[MESSAGE BUS] Published event (${eventName}) to event handlers`);
         });
     }
 }
@@ -112,6 +124,7 @@ Object.freeze(messageBus);
 
 
 ;// CONCATENATED MODULE: ./src/framework/InMemoryEventStore.ts
+
 
 class EventDescriptor {
     aggregateId;
@@ -125,6 +138,7 @@ class EventDescriptor {
 }
 class InMemoryEventStore {
     messageBus;
+    #numEvents = 0;
     constructor(messageBus) {
         this.messageBus = messageBus;
     }
@@ -136,6 +150,8 @@ class InMemoryEventStore {
         }
         const newEvents = events.map((event) => new EventDescriptor(aggregateId, event, 0));
         this.#events.set(aggregateId, [...this.#events.get(aggregateId) || [], ...newEvents]);
+        this.#numEvents += events.length;
+        events.forEach(event => console.log(external_colors_default().blue(`[EVENT ${event.constructor.name} SAVED] [${event.getTimestamp()}] [${event.getID()}]\n`)));
         // TODO this will be by configuring whatever I use for a real event stores
         // responsibility to talk to the MessageBus
         this.messageBus.publishEvents(events);
@@ -208,12 +224,35 @@ class AggregateRoot {
     }
 }
 
+;// CONCATENATED MODULE: external "uuid"
+const external_uuid_namespaceObject = require("uuid");;
 ;// CONCATENATED MODULE: ./src/framework/Event.ts
+
 class Event {
+    #id;
+    #timestamp;
+    getID() {
+        return this.#id;
+    }
+    getTimestamp() {
+        return this.#timestamp;
+    }
+    constructor() {
+        this.#id = (0,external_uuid_namespaceObject.v4)();
+        this.#timestamp = Date.now();
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/domain/events/AddedToDeck.ts
 
+/**
+ *
+ *
+ * I really don't know how much I love this TODO address.
+ *
+ * The purpose of enriching events like this is so that read projections
+ * have access to all of relevant info to build a view.
+ */
 class AddedToDeck extends Event {
     id;
     cards;
@@ -285,7 +324,7 @@ class RemovedFromDeck extends Event {
 class Deck extends AggregateRoot {
     #name = '';
     #format = Format.UNKNOWN;
-    #cards = /*Array<Card>*/ [];
+    #cards = [];
     constructor(id, name, format) {
         super();
         // TODO really bad way to deal with empty create for reconstruction.
@@ -321,7 +360,7 @@ class Deck extends AggregateRoot {
         this.addEvent(new RemovedFromDeck(this.id, ids));
     }
     applyRemovedFromDeck(event) {
-        this.#cards = this.#cards.filter((card) => !event.cards.includes(card));
+        this.#cards = this.#cards.filter((card) => !event.cards.includes(card.getID()));
     }
     rename(name) {
         this.addEvent(new DeckRenamed(this.id, name));
@@ -340,33 +379,36 @@ class Deck extends AggregateRoot {
 ;// CONCATENATED MODULE: ./src/domain/handlers/DeckCommandHandlers.ts
 
 class DeckCommandHandlers {
-    repository;
-    constructor(repository) {
-        this.repository = repository;
+    deckRepo;
+    cardRepo;
+    constructor(deckRepo, cardRepo) {
+        this.deckRepo = deckRepo;
+        this.cardRepo = cardRepo;
     }
     handleNewDeckCommand(command) {
         const deck = new Deck(command.id, command.name, command.format);
-        this.repository.save(deck, 0);
+        this.deckRepo.save(deck, 0);
     }
     handleAddToDeckCommand(command) {
-        const deck = this.repository.getById(command.id);
-        deck.addCards(command.cards);
-        this.repository.save(deck, 0);
+        const deck = this.deckRepo.getById(command.id);
+        const cards = this.cardRepo.getByIds(command.cards);
+        deck.addCards(cards);
+        this.deckRepo.save(deck, 0);
     }
     handleRemoveFromDeckCommand(command) {
-        const deck = this.repository.getById(command.id);
+        const deck = this.deckRepo.getById(command.id);
         deck.removeCards(command.cards);
-        this.repository.save(deck, 0);
+        this.deckRepo.save(deck, 0);
     }
     handleRenameDeckCommand(command) {
-        const deck = this.repository.getById(command.id);
+        const deck = this.deckRepo.getById(command.id);
         deck.rename(command.name);
-        this.repository.save(deck, 0);
+        this.deckRepo.save(deck, 0);
     }
     handleChangeDeckFormatCommand(command) {
-        const deck = this.repository.getById(command.id);
+        const deck = this.deckRepo.getById(command.id);
         deck.changeFormat(command.newFormat);
-        this.repository.save(deck, 0);
+        this.deckRepo.save(deck, 0);
     }
 }
 
@@ -404,6 +446,16 @@ class DeckProjection {
     getDeckView(id) {
         return this.#deckViews.get(id);
     }
+    static isDeckLegal(numCards, cards, format) {
+        if (numCards < 60)
+            return false;
+        for (const card of cards) {
+            if (!card.legalFormats.includes(format)) {
+                return false;
+            }
+        }
+        return true;
+    }
     constructor(messageBus) {
         this.messageBus = messageBus;
         // TODO once again address the use of string here
@@ -416,23 +468,40 @@ class DeckProjection {
                 name: e.name,
                 format: e.format,
                 numCards: 0,
+                isLegal: false,
                 cards: [],
             });
         });
         messageBus.registerEventHandler('AddedToDeck', (e) => {
             const view = this.#deckViews.get(e.id);
-            this.#deckViews.set(e.id, {
+            const updatedView = {
                 ...view,
                 numCards: view.numCards + e.cards.length,
-                cards: [...view.cards, ...e.cards],
+                cards: [...view.cards, ...e.cards.map((card) => ({
+                        id: card.getID(),
+                        name: card.getName(),
+                        legalFormats: card.getLegalFormats(),
+                        image: card.getImageURI(),
+                    }))],
+            };
+            const isLegal = DeckProjection.isDeckLegal(updatedView.numCards, updatedView.cards, updatedView.format);
+            this.#deckViews.set(e.id, {
+                ...updatedView,
+                isLegal
             });
         });
         messageBus.registerEventHandler('RemovedFromDeck', (e) => {
             const view = this.#deckViews.get(e.id);
-            this.#deckViews.set(e.id, {
+            const updatedView = {
                 ...view,
                 numCards: view.numCards - e.cards.length,
-                cards: view.cards.filter(((cardId) => !e.cards.includes(cardId))),
+                cards: view.cards.filter(((card) => !e.cards.includes(card.id))),
+            };
+            this.#deckViews.set(e.id, updatedView);
+            const isLegal = DeckProjection.isDeckLegal(updatedView.numCards, updatedView.cards, updatedView.format);
+            this.#deckViews.set(e.id, {
+                ...updatedView,
+                isLegal
             });
         });
         messageBus.registerEventHandler('DeckRenamed', (e) => {
@@ -475,6 +544,9 @@ class Card extends AggregateRoot {
     #name = '';
     #legalFormats = [];
     #image = '';
+    getID() {
+        return this._id;
+    }
     getName() {
         return this.#name;
     }
@@ -558,7 +630,144 @@ class CardProjection {
     }
 }
 
+;// CONCATENATED MODULE: ./src/domain/events/AddedToCollection.ts
+
+class AddedToCollection extends Event {
+    id;
+    cards;
+    constructor(id, cards) {
+        super();
+        this.id = id;
+        this.cards = cards;
+    }
+}
+
+;// CONCATENATED MODULE: ./src/domain/events/CollectionCreated.ts
+
+class CollectionCreated extends Event {
+    id;
+    ownerID;
+    constructor(id, ownerID) {
+        super();
+        this.id = id;
+        this.ownerID = ownerID;
+    }
+}
+
+;// CONCATENATED MODULE: ./src/domain/Collection.ts
+
+
+
+class Collection extends AggregateRoot {
+    #ownerID = '';
+    #cards = [];
+    getCards() {
+        return this.#cards;
+    }
+    constructor(id, ownerID) {
+        super();
+        if (id && ownerID) {
+            this.addEvent(new CollectionCreated(id, ownerID));
+        }
+    }
+    applyCollectionCreated(event) {
+        this._id = event.id;
+        this.#ownerID = event.ownerID;
+    }
+    addCards(ids) {
+        this.addEvent(new AddedToCollection(this.id, ids));
+    }
+    applyAddedToCollection(event) {
+        this.#cards = [...this.#cards, ...event.cards];
+    }
+    removeCards(ids) {
+    }
+}
+
+;// CONCATENATED MODULE: ./src/domain/projections/CollectionProjection.ts
+class CollectionProjection {
+    messageBus;
+    #collectionViews = new Map();
+    getCollectionView(id) {
+        return this.#collectionViews.get(id);
+    }
+    constructor(messageBus) {
+        this.messageBus = messageBus;
+        // TODO once again address the use of string here
+        // via reflection or some other cheeky solution.
+        // look at old mates code if you struggle. 
+        // They've done it somehow
+        messageBus.registerEventHandler('CollectionCreated', (e) => {
+            this.#collectionViews.set(e.id, {
+                cards: []
+            });
+            console.log(this.#collectionViews.get(e.id));
+        });
+        messageBus.registerEventHandler('AddedToCollection', (e) => {
+            const view = this.#collectionViews.get(e.id);
+            const updatedView = {
+                ...view,
+                cards: [...view.cards, ...e.cards.map((card) => ({
+                        id: card.getID(),
+                        name: card.getName(),
+                        legalFormats: card.getLegalFormats(),
+                        image: card.getImageURI(),
+                    }))],
+            };
+            this.#collectionViews.set(e.id, updatedView);
+        });
+    }
+}
+
+;// CONCATENATED MODULE: ./src/domain/handlers/CollectionCommandHandlers.ts
+
+class CollectionCommandHandlers {
+    collectionRepo;
+    cardRepo;
+    constructor(collectionRepo, cardRepo) {
+        this.collectionRepo = collectionRepo;
+        this.cardRepo = cardRepo;
+    }
+    handleNewCollectionCommand(command) {
+        const collection = new Collection(command.id, command.ownerID);
+        this.collectionRepo.save(collection, 0);
+    }
+    handleAddToCollectionCommand(command) {
+        const collection = this.collectionRepo.getById(command.id);
+        const cards = this.cardRepo.getByIds(command.cards);
+        collection.addCards(cards);
+        this.collectionRepo.save(collection, 0);
+    }
+}
+
+;// CONCATENATED MODULE: ./src/domain/commands/NewCollectionCommand.ts
+class NewCollectionCommand {
+    id;
+    ownerID;
+    constructor(id, ownerID) {
+        this.id = id;
+        this.ownerID = ownerID;
+    }
+}
+
+;// CONCATENATED MODULE: ./src/domain/commands/AddToCollectionCommand.ts
+class AddToCollectionCommand {
+    id;
+    cards;
+    constructor(id, cards) {
+        this.id = id;
+        this.cards = cards;
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/index.ts
+
+
+
+
+
+
+
 
 
 
@@ -576,23 +785,34 @@ class CardProjection {
 // Repos
 const deckRepo = new Repository(eventStore, Deck);
 const cardRepo = new Repository(eventStore, Card);
+const collectionRepo = new Repository(eventStore, Collection);
 // Projections
 const deckProjection = new DeckProjection(messageBus);
 const cardProjection = new CardProjection(messageBus);
+const collectionProjection = new CollectionProjection(messageBus);
 messageBus.registerCommandHandlers([
     'NewDeckCommand',
     'AddToDeckCommand',
     'RenameDeckCommand',
     'ChangeDeckFormatCommand',
     'RemoveFromDeckCommand',
-], new DeckCommandHandlers(deckRepo));
+], new DeckCommandHandlers(deckRepo, cardRepo));
 messageBus.registerCommandHandlers([
     'NewCardCommand'
 ], new CardCommandHandlers(cardRepo));
+messageBus.registerCommandHandlers([
+    'NewCollectionCommand',
+    'AddToCollectionCommand'
+], new CollectionCommandHandlers(collectionRepo, cardRepo));
 /**
  * TEST DATA
  */
+const TEST_USER_ID = "403128eb-9f48-4a9e-a606-2520cc42bc81";
 const TEST_DECK_ID = "bf874a46-4c88-4492-a003-8ce6a33bac08";
+const TEST_COLLECTION_ID = "350bed33-f97c-4926-b3fa-5278f297a66f";
+// Make new collection
+messageBus.sendCommand(new NewCollectionCommand(TEST_COLLECTION_ID, TEST_USER_ID));
+// Create new deck
 messageBus.sendCommand(new NewDeckCommand(TEST_DECK_ID, "NewDeck", Format.MODERN));
 const TEST_CARDS = [
     {
@@ -4313,8 +4533,9 @@ const TEST_CARDS = [
     }
 ];
 const newCardCommands = TEST_CARDS.map((c) => new NewCardCommand(c.id, c.name, c.legalFormats, c.image));
+const addToCollectionCommands = TEST_CARDS.slice(0, 20).map((c) => new AddToCollectionCommand(TEST_COLLECTION_ID, [c.id]));
 const addToDeckCommands = TEST_CARDS.slice(0, 20).map((c) => new AddToDeckCommand(TEST_DECK_ID, [c.id]));
-for (const command of [...newCardCommands, ...addToDeckCommands]) {
+for (const command of [...newCardCommands, ...addToDeckCommands, ...addToCollectionCommands]) {
     messageBus.sendCommand(command);
 }
 /**
@@ -4322,13 +4543,29 @@ for (const command of [...newCardCommands, ...addToDeckCommands]) {
  */
 const app = external_express_default()();
 const { PORT = 3000, } = process.env;
-app.get('/', (req, res) => {
-    res.send({
-        message: 'hello world',
-    });
+app.use(external_body_parser_default().json());
+app.use(external_body_parser_default().urlencoded({ extended: true }));
+app
+    .get('/collection/:id', (req, res) => {
+    const view = collectionProjection.getCollectionView(req.params.id);
+    res.json(view);
+})
+    .get('/deck/:id', (req, res) => {
+    const view = deckProjection.getDeckView(req.params.id);
+    res.json(view);
+})
+    .get('/cards', (req, res) => {
+    const view = cardProjection.getCards();
+    res.json(view);
+})
+    .put("/deck/:id/add", async (req, res) => {
+    const id = req.params.id;
+    const cards = req.body.cards;
+    messageBus.sendCommand(new AddToDeckCommand(id, cards));
+    res.json({ success: true });
 });
 app.listen(PORT, () => {
-    console.log('server started at http://localhost:' + PORT);
+    console.log(external_colors_default().red.inverse('\n[REST] server started at http://localhost:' + PORT + '\n'));
 });
 /*
 const router = new Router();

@@ -1,6 +1,8 @@
 
 import express from 'express';
 import { Request, Response } from 'express';
+import bodyParser from 'body-parser';
+import colors from "colors";
 
 import { Repository } from "./framework/Repository";
 import { InMemoryEventStore, eventStore } from "./framework/InMemoryEventStore";
@@ -19,13 +21,20 @@ import { Card } from "./domain/Card";
 import { NewCardCommand } from "./domain/commands/NewCardCommand";
 import { CardCommandHandlers } from "./domain/handlers/CardCommandHandlers";
 import { CardProjection } from "./domain/projections/CardProjection";
+import { Collection } from './domain/Collection';
+import { CollectionProjection } from './domain/projections/CollectionProjection';
+import { CollectionCommandHandlers } from './domain/handlers/CollectionCommandHandlers';
+import { NewCollectionCommand } from './domain/commands/NewCollectionCommand';
+import { AddToCollectionCommand } from './domain/commands/AddToCollectionCommand';
 
 // Repos
 const deckRepo: Repository<Deck> = new Repository<Deck>(eventStore, Deck);
 const cardRepo: Repository<Card> = new Repository<Card>(eventStore, Card);
+const collectionRepo: Repository<Collection> = new Repository<Collection>(eventStore, Collection);
 // Projections
 const deckProjection = new DeckProjection(messageBus);
 const cardProjection = new CardProjection(messageBus);
+const collectionProjection = new CollectionProjection(messageBus);
 
 messageBus.registerCommandHandlers([
     'NewDeckCommand',
@@ -33,17 +42,29 @@ messageBus.registerCommandHandlers([
     'RenameDeckCommand',
     'ChangeDeckFormatCommand',
     'RemoveFromDeckCommand',
-], new DeckCommandHandlers(deckRepo));
+], new DeckCommandHandlers(deckRepo, cardRepo));
 
 messageBus.registerCommandHandlers([
   'NewCardCommand'
 ], new CardCommandHandlers(cardRepo));
 
+messageBus.registerCommandHandlers([
+  'NewCollectionCommand',
+  'AddToCollectionCommand'
+], new CollectionCommandHandlers(collectionRepo, cardRepo));
+
 /**
  * TEST DATA
  */
 
+const TEST_USER_ID = "403128eb-9f48-4a9e-a606-2520cc42bc81";
 const TEST_DECK_ID = "bf874a46-4c88-4492-a003-8ce6a33bac08";
+const TEST_COLLECTION_ID = "350bed33-f97c-4926-b3fa-5278f297a66f";
+
+// Make new collection
+messageBus.sendCommand(new NewCollectionCommand(TEST_COLLECTION_ID, TEST_USER_ID));
+
+// Create new deck
 messageBus.sendCommand(new NewDeckCommand(TEST_DECK_ID, "NewDeck", Format.MODERN));
 
 const TEST_CARDS = [
@@ -3764,11 +3785,14 @@ const TEST_CARDS = [
     "image": "https://c1.scryfall.com/file/scryfall-cards/normal/front/0/1/01084157-60e5-4693-bbec-be60b0b4e04f.jpg?1562770883"
   }
 ];
+
 const newCardCommands = TEST_CARDS.map((c: any) => new NewCardCommand(c.id, c.name, c.legalFormats, c.image));
+const addToCollectionCommands = TEST_CARDS.slice(0, 20).map((c: any) => new AddToCollectionCommand(TEST_COLLECTION_ID, [c.id]));
 const addToDeckCommands = TEST_CARDS.slice(0, 20).map((c: any) => new AddToDeckCommand(TEST_DECK_ID, [c.id]));
-for (const command of [...newCardCommands, ...addToDeckCommands]) {
+for (const command of [...newCardCommands, ...addToDeckCommands, ...addToCollectionCommands]) {
   messageBus.sendCommand(command);
 }
+
 
 /**
  * ROUTING
@@ -3780,14 +3804,32 @@ for (const command of [...newCardCommands, ...addToDeckCommands]) {
    PORT = 3000,
  } = process.env;
 
- app.get('/', (req: Request, res: Response) => {
-   res.send({
-     message: 'hello world',
-   });
- });
+ app.use(bodyParser.json()) 
+ app.use(bodyParser.urlencoded({ extended: true })) 
+
+ app
+  .get('/collection/:id', (req: Request, res: Response) => {
+    const view = collectionProjection.getCollectionView(req.params.id as string);
+    res.json(view);
+  })
+  .get('/deck/:id', (req: Request, res: Response) => {
+    const view = deckProjection.getDeckView(req.params.id as string);
+    res.json(view);
+  })
+  .get('/cards', (req: Request, res: Response) => {
+    const view = cardProjection.getCards();
+    res.json(view);
+  })
+  .put("/deck/:id/add", async (req: Request, res: Response) => {
+    const id = req.params.id;
+    const cards = req.body.cards;
+
+    messageBus.sendCommand(new AddToDeckCommand(id, cards));
+    res.json({success: true});
+  })
 
  app.listen(PORT, () => {
-   console.log('server started at http://localhost:'+PORT);
+   console.log(colors.red.inverse('\n[REST] server started at http://localhost:' + PORT + '\n'));
  });
  
 /*
